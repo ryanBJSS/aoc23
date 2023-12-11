@@ -29,12 +29,12 @@ class Node
     @j = j
   end
 
-  def expand_in_i
-    @i += 999999
+  def expand_in_i(n)
+    @i += n
   end
 
-  def expand_in_j
-    @j += 999999
+  def expand_in_j(n)
+    @j += n
   end
 end
 
@@ -56,16 +56,16 @@ row_lenth.times do |j|
   empty_cols << j if node_map.get_with_j(j).empty?
 end
 
-
-empty_rows = empty_rows.map.with_index { |v, i| v + ((999999 * i)) }
-empty_cols = empty_cols.map.with_index { |v, i| v + ((999999 * i)) }
+PART_2 = 999999
+empty_rows = empty_rows.map.with_index { |v, i| v + ((PART_2 * i)) }
+empty_cols = empty_cols.map.with_index { |v, i| v + ((PART_2 * i)) }
 
 empty_rows.each do |row|
-  node_map.nodes.select { |node| node.i > row }.map(&:expand_in_i)
+  node_map.nodes.select { |node| node.i > row }.map { |node| node.expand_in_i(PART_2) }
 end
 
 empty_cols.each do |col|
-  node_map.nodes.select { |node| node.j > col }.map(&:expand_in_j)
+  node_map.nodes.select { |node| node.j > col }.map { |node| node.expand_in_j(PART_2) }
 end
 
 pp(node_map.nodes.combination(2).map do |node1, node2|
