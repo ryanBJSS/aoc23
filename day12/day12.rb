@@ -18,10 +18,10 @@ def thing(line, counts, depth)
   pp "#{padding}Line is #{line}"
   target_count = counts.first
   pp "#{padding}Target count is #{target_count}"
-  if (line == nil || line.empty? && target_count.nil?) || (target_count.nil? && !line.chars.include?("#"))
+  if ((line.nil? || line.empty?) && (counts.nil? || counts.empty?)) || ((counts.nil? || counts.empty?) && !line.chars.include?("#"))
     pp "#{padding}Success #{line} #{counts}"
     return 1
-  elsif target_count.nil? || line.empty?
+  elsif (counts.nil? || counts.empty?) || line.nil? || line.empty?
     pp "#{padding}Fail: Run out of stuff"
     return 0
   end
@@ -59,4 +59,4 @@ def thing(line, counts, depth)
 end
 
 pp lines
-pp lines.map { |l| day12(l[:springs], l[:counts]) }
+pp lines.map { |l| day12(l[:springs], l[:counts]) }.sum
