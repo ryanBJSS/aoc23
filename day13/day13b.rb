@@ -4,20 +4,25 @@ def find_reflection(pairs_row, rows, modifier)
     second_index = pair[1]
     search = true
     found = false
+    smudge = nil
     while search do
       row1 = rows.find { |rr| rr[:index] == first_index }
       row2 = rows.find { |rr| rr[:index] == second_index }
       if row1.nil? || row2.nil?
-        found = true
+        found = true if smudge
         search = false
       elsif row1[:chars].map.with_index { |c, i| c != row2[:chars][i] }.select { |v| v }.size == 0
         first_index -= 1
         second_index += 1
+      elsif row1[:chars].map.with_index { |c, i| c != row2[:chars][i] }.select { |v| v }.size == 1 && !smudge
+        first_index -= 1
+        second_index += 1
+        smudge = true
       else
         search = false
       end
     end
-    if found
+    if found && smudge
       pair[0].to_i * modifier
     end
   end
