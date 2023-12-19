@@ -1,14 +1,13 @@
 class Node
-  attr_accessor :i, :j, :cost, :children
+  attr_accessor :i, :j, :cost
   def initialize(i, j, cost)
     self.i = i
     self.j = j
     self.cost = cost.to_i
-    @children = []
   end
 
-  def add_child(node)
-    @children << node
+  def id
+    [i,j]
   end
 
   def to_s
@@ -19,6 +18,11 @@ end
 class NodeMap
   def initialize
     @nodes = []
+    @mappings = {}
+  end
+
+  def mappings
+    @mappings
   end
 
   def start_node
@@ -64,45 +68,48 @@ File.readlines("input.txt").map(&:chomp).each_with_index do |row, i|
 end
 
 grid.nodes.each do |node|
-  node.add_child [grid.left_of(node), :left]
-  node.add_child [grid.right_of(node), :right]
-  node.add_child [grid.up_of(node), :up]
-  node.add_child [grid.down_of(node), :down]
+  nodes_to_add = []
+  nodes_to_add << [grid.left_of(node), :left] if grid.left_of(node)
+  nodes_to_add << [grid.right_of(node), :right] if grid.right_of(node)
+  nodes_to_add << [grid.up_of(node), :up] if grid.up_of(node)
+  nodes_to_add << [grid.down_of(node), :down] if grid.down_of(node)
+  grid.mappings[node.id] = nodes_to_add
 end
 
 
 path = [grid.start_node]
-queue = [path]
+queue = [Marshal.load(Marshal.dump(path))]
 
 while !queue.empty?
+  pp queue.size
   path = queue.shift
   last = path.last
 
-  if last == grid.end_node
+  if last.id == grid.end_node.id
     puts "Win"
     exit
   end
 
-  unless last.nil?
     direction_count = 0
     direction_save = nil
-    last.children.each do |(child, direction)|
-      if direction_save == direction
-        direction_count += 1
-      else
-        direction_save = direction
-        direction_count = 1
-      end
-      if !path.include?(child) && direction_count < 4
-        if child == grid.end_node
-          min_cost = new_path.map { |p| p.cost }.sum
-          pp min_cost
-        end
+  grid.mappings[last.id].each do |(child, direction)|
+      # if direction_save == direction
+      #   direction_count += 1
+      # else
+      #   direction_save = direction
+      #   direction_count = 1
+      # end
+      # pp "Path"
+      # pp path
+      # pp "Child"
+      # pp child
+      # pp path.include?(child)
+      # puts
+      if !path.find { |n| n.id == child.id }
         new_path = Marshal.load(Marshal.dump(path))
         new_path << child
         queue << new_path
       end
-    end
   end
 end
 
