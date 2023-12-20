@@ -95,32 +95,29 @@ end
 }
 
 @ways_there = []
-path = [PathItem.new(grid.start_node, 0, :left)]
-p2 = [PathItem.new(grid.start_node, 0, :up)]
+path = [PathItem.new(grid.start_node, :left)]
+p2 = [PathItem.new(grid.start_node, :up)]
 queue = [path, p2]
 
 while !queue.empty?
   path = queue.shift
   last_node = path.last.node
 
-
-
   grid.mappings[last_node.id].each do |(child, direction)|
     if child.id == grid.end_node.id
       @ways_there << (path + [PathItem.new(child,direction)])
     end
-    if @visited.find { |path_item| path_item.id == [child.i, child.j, direction] }.nil?# || @visited.find { |path_item| path_item.id == [child.i, child.j, direction] }.heat_lost_getting_there > (path.map(&:heat_lost_getting_there).last + child.cost)
+    if @visited[[child.i, child.j, direction]].nil? || @visited[[child.i, child.j, direction]] > (path.map(&:node).map(&:cost).sum + child.cost)
 
-      next if child.id == path[-2]&.id # No back
+      # next if child.id == path[-2]&.id # No back
       must_change_direction = path.last(3).all? { |p| p.direction == direction }
       next if must_change_direction
-      @visited << PathItem.new(child,path.map(&:node).map(&:cost).sum,direction)
       new_path = Marshal.load(Marshal.dump(path))
-      new_path << PathItem.new(child,path.map(&:node).map(&:cost).sum,direction)
+      new_path << PathItem.new(child, direction)
       queue << new_path
-
+      @visited[[child.i, child.j, direction]] = new_path.map(&:node).map(&:cost).sum
     end
   end
 end
 
-pp @ways_there.map { |way| way.map(&:node).map(&:cost).sum }.sort
+pp @ways_there.map { |way| way.map(&:node).map(&:cost).sum }.sort.min
