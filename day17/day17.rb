@@ -1,3 +1,4 @@
+require 'fc'
 class PathItem
   attr_accessor :node, :direction
 
@@ -30,8 +31,8 @@ end
 
 class NodeMap
   def initialize
-    @nodes = []
-    @mappings = {}
+    @nodes = Hash.new { |hash, key| hash[key] = {} }
+    @mappings = {  }
   end
 
   def mappings
@@ -39,32 +40,16 @@ class NodeMap
   end
 
   def start_node
-    @nodes.find { |node_to_find| node_to_find.i == 0 && node_to_find.j == 0 }
+    @nodes[0][0]
   end
 
   def end_node
-    max = @nodes.max { |n| n.i }.i - 1
-    @nodes.find { |node_to_find| node_to_find.i == max && node_to_find.j == max }
+    max = @nodes.keys.max - 1
+    @nodes[max][max]
   end
 
   def add(node)
-    @nodes << node
-  end
-
-  def right_of(node)
-    @nodes.find { |node_to_find| node_to_find.i == node.i && node_to_find.j == node.j + 1 }
-  end
-
-  def left_of(node)
-    @nodes.find { |node_to_find| node_to_find.i == node.i && node_to_find.j == node.j - 1 }
-  end
-
-  def up_of(node)
-    @nodes.find { |node_to_find| node_to_find.i == node.i - 1 && node_to_find.j == node.j  }
-  end
-
-  def down_of(node)
-    @nodes.find { |node_to_find| node_to_find.i == node.i + 1 && node_to_find.j == node.j  }
+    @nodes[node.i][node.j] = node
   end
 
   def nodes
@@ -79,16 +64,24 @@ File.readlines("input.txt").map(&:chomp).each_with_index do |row, i|
     grid.add Node.new(i, j, col)
   end
 end
+pp "A"
+grid.nodes.each do |i,jhash|
+  jhash.each do |j, node|
+    nodes_to_add = []
+    nodes_to_add << [grid.nodes.dig(i,j - 1), :left] if grid.nodes.dig(i,j - 1)
+    nodes_to_add << [grid.nodes.dig(i,j + 1), :right] if grid.nodes.dig(i,j + 1)
+    if grid.nodes.has_key?(i - 1) && grid.nodes.has_key?(j)
+      nodes_to_add << [grid.nodes[i - 1][j], :up]
+    end
+    if grid.nodes.has_key?(i + 1) && grid.nodes.has_key?(j)
+      nodes_to_add << [grid.nodes[i + 1][j], :down]
+    end
+    grid.mappings[node.id] = nodes_to_add
+  end
 
-grid.nodes.each do |node|
-  nodes_to_add = []
-  nodes_to_add << [grid.left_of(node), :left] if grid.left_of(node)
-  nodes_to_add << [grid.right_of(node), :right] if grid.right_of(node)
-  nodes_to_add << [grid.up_of(node), :up] if grid.up_of(node)
-  nodes_to_add << [grid.down_of(node), :down] if grid.down_of(node)
-  grid.mappings[node.id] = nodes_to_add
+
 end
-
+pp "B"
 @visited = {
   PathItem.new(grid.start_node, :left).id => 0,
   PathItem.new(grid.start_node,  :up).id => 0
@@ -97,26 +90,27 @@ end
 @ways_there = []
 path = [PathItem.new(grid.start_node, :left)]
 p2 = [PathItem.new(grid.start_node, :up)]
-queue = [path, p2]
-
+queue = FastContainers::PriorityQueue.new(:min)
+queue.push(path, 0)
+queue.push(p2,0)
 while !queue.empty?
-  path = queue.shift
+  path = queue.pop
   last_node = path.last.node
-
   grid.mappings[last_node.id].each do |(child, direction)|
+    next if child.id == path[-2]&.id # No back
     if child.id == grid.end_node.id
       @ways_there << (path + [PathItem.new(child,direction)])
     end
-    if @visited[[child.i, child.j, direction]].nil? || @visited[[child.i, child.j, direction]] > (path.map(&:node).map(&:cost).sum + child.cost)
-
-      # next if child.id == path[-2]&.id # No back
+    cost_up_to_now = path.map(&:node).map(&:cost).sum + child.cost
+    # next if @visited[[child.i, child.j, direction]] && @visited[[child.i, child.j, direction]] < cost_up_to_now
+    if @visited[[child.i, child.j, direction]].nil? || @visited[[child.i, child.j, direction]] > cost_up_to_now
       must_change_direction = path.last(3).all? { |p| p.direction == direction }
       next if must_change_direction
       new_path = Marshal.load(Marshal.dump(path))
       new_path << PathItem.new(child, direction)
-      queue << new_path
-      @visited[[child.i, child.j, direction]] = new_path.map(&:node).map(&:cost).sum
-    end
+      queue.push(new_path,cost_up_to_now)
+      @visited[[child.i, child.j, direction]] = cost_up_to_now
+    # end
   end
 end
 
