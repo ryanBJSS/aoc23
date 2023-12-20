@@ -8,7 +8,7 @@ class PathItem
   end
 
   def id
-    [node.i, node.j, step_count]
+    [node.i, node.j, direction]
   end
 end
 
@@ -98,6 +98,8 @@ end
   PathItem.new(grid.start_node, 0, :up),
   PathItem.new(grid.start_node, 0, :down)
 ]
+
+@ways_there = []
 path = [grid.start_node]
 queue = [Marshal.load(Marshal.dump(path))]
 
@@ -106,31 +108,21 @@ while !queue.empty?
   last_node = path.last
 
   if last_node.id == grid.end_node.id
-    puts "Win"
-    exit
+    @ways_there << path
+    next
   end
 
     direction_count = 0
     direction_save = nil
   grid.mappings[last_node.id].each do |(child, direction)|
-      # if direction_save == direction
-      #   direction_count += 1
-      # else
-      #   direction_save = direction
-      #   direction_count = 1
-      # end
-      # pp "Path"
-      # pp path
-      # pp "Child"
-      # pp child
-      # pp path.include?(child)
-      # puts
-
-      if !path.find { |path_item| path_item.id == child.id }
-        new_path = Marshal.load(Marshal.dump(path))
-        new_path << child
-        queue << new_path
-      end
+    if !@visited.find { |path_item| path_item.id == [child.i, child.j, direction] } #|| @visited.find { |path_item| path_item.id == [child.i, child.j, direction] }.step_count > path.size
+      @visited << PathItem.new(child,path.size,direction)
+      pp path.last(3)
+      new_path = Marshal.load(Marshal.dump(path))
+      new_path << child
+      queue << new_path
+    end
   end
 end
 
+pp @ways_there.map { |way| way.map(&:cost).sum }
