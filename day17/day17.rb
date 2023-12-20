@@ -96,16 +96,17 @@ end
   PathItem.new(grid.start_node, 0, :left),
   PathItem.new(grid.start_node, 0, :right),
   PathItem.new(grid.start_node, 0, :up),
-  PathItem.new(grid.start_node, 0, :down)
+  PathItem.new(grid.start_node, 0, :down),
+  PathItem.new(grid.start_node, 0, :start)
 ]
 
 @ways_there = []
-path = [grid.start_node]
+path = [PathItem.new(grid.start_node, 0, :start)]
 queue = [Marshal.load(Marshal.dump(path))]
 
 while !queue.empty?
   path = queue.shift
-  last_node = path.last
+  last_node = path.last.node
 
   if last_node.id == grid.end_node.id
     @ways_there << path
@@ -119,7 +120,7 @@ while !queue.empty?
       @visited << PathItem.new(child,path.size,direction)
       pp path.last(3)
       new_path = Marshal.load(Marshal.dump(path))
-      new_path << child
+      new_path << PathItem.new(child,path.size,direction)
       queue << new_path
     end
   end
