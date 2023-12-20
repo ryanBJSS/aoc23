@@ -1,9 +1,9 @@
 class PathItem
-  attr_accessor :node, :step_count, :direction
+  attr_accessor :node, :heat_lost_getting_there, :direction
 
-  def initialize(node, step_count, direction)
+  def initialize(node, heat_lost_getting_there, direction)
     self.node = node
-    self.step_count = step_count
+    self.heat_lost_getting_there = heat_lost_getting_there
     self.direction = direction
   end
 
@@ -90,40 +90,38 @@ grid.nodes.each do |node|
   grid.mappings[node.id] = nodes_to_add
 end
 
-
-
 @visited = [
   PathItem.new(grid.start_node, 0, :left),
-  PathItem.new(grid.start_node, 0, :right),
   PathItem.new(grid.start_node, 0, :up),
-  PathItem.new(grid.start_node, 0, :down),
-  PathItem.new(grid.start_node, 0, :start)
 ]
 
-@ways_there = []
-path = [PathItem.new(grid.start_node, 0, :start)]
-queue = [Marshal.load(Marshal.dump(path))]
+@ways_there = {}
+path = [PathItem.new(grid.start_node, 0, :left)]
+p2 = [PathItem.new(grid.start_node, 0, :up)]
+queue = [path, p2]
 
 while !queue.empty?
   path = queue.shift
   last_node = path.last.node
 
-  if last_node.id == grid.end_node.id
-    @ways_there << path
-    next
-  end
+
 
   grid.mappings[last_node.id].each do |(child, direction)|
-    if @visited.find { |path_item| path_item.id == [child.i, child.j, direction] }.nil? || @visited.find { |path_item| path_item.id == [child.i, child.j, direction] }.step_count > path.size
-      must_change_direction = path.last(3).map(&:direction).group_by { |d| d }.first[1].size == 3
+    if child.id == grid.end_node.id
+      @ways_there << (path + [PathItem.new(child,path.map(&:node).map(&:cost).sum,direction)])
+    end
+    if @visited.find { |path_item| path_item.id == [child.i, child.j, direction] }.nil?# || @visited.find { |path_item| path_item.id == [child.i, child.j, direction] }.heat_lost_getting_there > (path.map(&:heat_lost_getting_there).last + child.cost)
+
+      next if child.id == path[-2]&.id # No back
+      must_change_direction = path.last(3).all? { |p| p.direction == direction }
       next if must_change_direction
-      @visited << PathItem.new(child,path.size,direction)
+      @visited << PathItem.new(child,path.map(&:node).map(&:cost).sum,direction)
       new_path = Marshal.load(Marshal.dump(path))
-      new_path << PathItem.new(child,path.size,direction)
+      new_path << PathItem.new(child,path.map(&:node).map(&:cost).sum,direction)
       queue << new_path
+
     end
   end
 end
 
-pp @ways_there.map { |way| way.map(&:node).map(&:cost).sum }
-pp @ways_there.first.map(&:direction)
+pp @ways_there.map { |way| way.map(&:node).map(&:cost).sum }.sort
