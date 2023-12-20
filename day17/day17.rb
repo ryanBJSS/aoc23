@@ -1,14 +1,15 @@
 require 'fc'
 class PathItem
-  attr_accessor :node, :direction
+  attr_accessor :node, :direction, :steps_in_one_dir_to_get_here
 
-  def initialize(node, direction)
+  def initialize(node, direction, steps_in_one_dir_to_get_here)
     self.node = node
     self.direction = direction
+    self.steps_in_one_dir_to_get_here = steps_in_one_dir_to_get_here
   end
 
   def id
-    [node.i, node.j, direction]
+    [node.i, node.j, direction, steps_in_one_dir_to_get_here]
   end
 end
 
@@ -83,13 +84,13 @@ grid.nodes.each do |i,jhash|
 end
 pp "B"
 @visited = {
-  PathItem.new(grid.start_node, :left).id => 0,
-  PathItem.new(grid.start_node,  :up).id => 0
+  PathItem.new(grid.start_node, :left, 0).id => 0,
+  PathItem.new(grid.start_node,  :up, 0).id => 0
 }
 
 @ways_there = []
-path = [PathItem.new(grid.start_node, :left)]
-p2 = [PathItem.new(grid.start_node, :up)]
+path = [PathItem.new(grid.start_node, :left, 0)]
+p2 = [PathItem.new(grid.start_node, :up, 0)]
 queue = FastContainers::PriorityQueue.new(:min)
 queue.push(path, 0)
 queue.push(p2,0)
@@ -98,20 +99,22 @@ while !queue.empty?
   last_node = path.last.node
   grid.mappings[last_node.id].each do |(child, direction)|
     next if child.id == path[-2]&.id # No back
+    steps_in_one_dir_to_get_here = path.last(3).map(&:direction).select { |d| d == direction }.size
     if child.id == grid.end_node.id
-      @ways_there << (path + [PathItem.new(child,direction)])
+      @ways_there << (path + [PathItem.new(child,direction, steps_in_one_dir_to_get_here)])
+      puts "moo"
     end
     cost_up_to_now = path.map(&:node).map(&:cost).sum + child.cost
-    # next if @visited[[child.i, child.j, direction]] && @visited[[child.i, child.j, direction]] < cost_up_to_now
-    if @visited[[child.i, child.j, direction]].nil? || @visited[[child.i, child.j, direction]] > cost_up_to_now
+    next if steps_in_one_dir_to_get_here == 3
+    next if @visited[[child.i, child.j, direction,steps_in_one_dir_to_get_here]] && @visited[[child.i, child.j, direction, steps_in_one_dir_to_get_here]] < cost_up_to_now
       must_change_direction = path.last(3).all? { |p| p.direction == direction }
       next if must_change_direction
       new_path = Marshal.load(Marshal.dump(path))
-      new_path << PathItem.new(child, direction)
+      new_path << PathItem.new(child, direction, steps_in_one_dir_to_get_here)
       queue.push(new_path,cost_up_to_now)
-      @visited[[child.i, child.j, direction]] = cost_up_to_now
+      @visited[[child.i, child.j, direction, steps_in_one_dir_to_get_here]] = cost_up_to_now
     # end
   end
 end
 
-pp @ways_there.map { |way| way.map(&:node).map(&:cost).sum }.sort.min
+pp @ways_there.map { |way| way.map(&:node).map(&:cost).sum }.min
