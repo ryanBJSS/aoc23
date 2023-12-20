@@ -1,3 +1,17 @@
+class PathItem
+  attr_accessor :node, :step_count, :direction
+
+  def initialize(node, step_count)
+    self.node = node
+    self.step_count = step_count
+    self.direction = direction
+  end
+
+  def id
+    [node.i, node.j, step_count]
+  end
+end
+
 class Node
   attr_accessor :i, :j, :cost
   def initialize(i, j, cost)
@@ -77,22 +91,23 @@ grid.nodes.each do |node|
 end
 
 
-path = [grid.start_node]
+
+@path = [PathItem.new(grid.start_node, 0)]
 queue = [Marshal.load(Marshal.dump(path))]
 
 while !queue.empty?
   pp queue.size
   path = queue.shift
-  last = path.last
+  last_node = path.last.node
 
-  if last.id == grid.end_node.id
+  if last_node.id == grid.end_node.id
     puts "Win"
     exit
   end
 
     direction_count = 0
     direction_save = nil
-  grid.mappings[last.id].each do |(child, direction)|
+  grid.mappings[last_node.id].each do |(child, direction)|
       # if direction_save == direction
       #   direction_count += 1
       # else
@@ -105,9 +120,10 @@ while !queue.empty?
       # pp child
       # pp path.include?(child)
       # puts
-      if !path.find { |n| n.id == child.id }
+
+      if !path.find { |path_item| path_item.id == child.id }
         new_path = Marshal.load(Marshal.dump(path))
-        new_path << child
+        new_path << PathItem.new(child, 0)
         queue << new_path
       end
   end
