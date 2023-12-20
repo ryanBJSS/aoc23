@@ -113,12 +113,11 @@ while !queue.empty?
     next
   end
 
-    direction_count = 0
-    direction_save = nil
   grid.mappings[last_node.id].each do |(child, direction)|
-    if !@visited.find { |path_item| path_item.id == [child.i, child.j, direction] } #|| @visited.find { |path_item| path_item.id == [child.i, child.j, direction] }.step_count > path.size
+    if @visited.find { |path_item| path_item.id == [child.i, child.j, direction] }.nil? || @visited.find { |path_item| path_item.id == [child.i, child.j, direction] }.step_count > path.size
+      must_change_direction = path.last(3).map(&:direction).group_by { |d| d }.first[1].size == 3
+      next if must_change_direction
       @visited << PathItem.new(child,path.size,direction)
-      pp path.last(3)
       new_path = Marshal.load(Marshal.dump(path))
       new_path << PathItem.new(child,path.size,direction)
       queue << new_path
@@ -126,4 +125,5 @@ while !queue.empty?
   end
 end
 
-pp @ways_there.map { |way| way.map(&:cost).sum }
+pp @ways_there.map { |way| way.map(&:node).map(&:cost).sum }
+pp @ways_there.first.map(&:direction)
