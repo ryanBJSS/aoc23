@@ -1,7 +1,7 @@
 class PathItem
   attr_accessor :node, :step_count, :direction
 
-  def initialize(node, step_count)
+  def initialize(node, step_count, direction)
     self.node = node
     self.step_count = step_count
     self.direction = direction
@@ -92,13 +92,18 @@ end
 
 
 
-@path = [PathItem.new(grid.start_node, 0)]
+@visited = [
+  PathItem.new(grid.start_node, 0, :left),
+  PathItem.new(grid.start_node, 0, :right),
+  PathItem.new(grid.start_node, 0, :up),
+  PathItem.new(grid.start_node, 0, :down)
+]
+path = [grid.start_node]
 queue = [Marshal.load(Marshal.dump(path))]
 
 while !queue.empty?
-  pp queue.size
   path = queue.shift
-  last_node = path.last.node
+  last_node = path.last
 
   if last_node.id == grid.end_node.id
     puts "Win"
@@ -123,7 +128,7 @@ while !queue.empty?
 
       if !path.find { |path_item| path_item.id == child.id }
         new_path = Marshal.load(Marshal.dump(path))
-        new_path << PathItem.new(child, 0)
+        new_path << child
         queue << new_path
       end
   end
