@@ -1,12 +1,13 @@
 require 'fc'
 require 'byebug'
 class PathItem
-  attr_accessor :node, :direction, :steps_in_one_dir_to_get_here
+  attr_accessor :node, :direction, :steps_in_one_dir_to_get_here, :cost_to_date
 
-  def initialize(node, direction, steps_in_one_dir_to_get_here)
+  def initialize(node, direction, steps_in_one_dir_to_get_here, cost_to_date)
     self.node = node
     self.direction = direction
     self.steps_in_one_dir_to_get_here = steps_in_one_dir_to_get_here
+    self.cost_to_date = cost_to_date
   end
 
   def id
@@ -85,13 +86,13 @@ pp "Preprocessing done"
 
 
 @visited = {
-  PathItem.new(grid.start_node, :left, 1).id => 0,
-  PathItem.new(grid.start_node,  :up, 1).id => 0
+  PathItem.new(grid.start_node, :left, 1, 0).id => 0,
+  PathItem.new(grid.start_node,  :up, 1, 0).id => 0
 }
 
 @ways_there = []
-path = [PathItem.new(grid.start_node, :left, 1)]
-p2 = [PathItem.new(grid.start_node, :up, 1)]
+path = [PathItem.new(grid.start_node, :left, 1, 0)]
+p2 = [PathItem.new(grid.start_node, :up, 1, 0)]
 queue = FastContainers::PriorityQueue.new(:min)
 queue.push(path, 0)
 queue.push(p2,0)
@@ -134,19 +135,19 @@ while !queue.empty?
     # Don't queue if too many steps
     next if cons_steps_to_this_node > 3
 
-
     # Attempt extending the path with this node
     new_path = Marshal.load(Marshal.dump(path))
-    new_path << PathItem.new(child, direction, cons_steps_to_this_node)
+    cost_up_to_now = path.last.cost_to_date + child.cost
+    new_path << PathItem.new(child, direction, cons_steps_to_this_node, cost_up_to_now)
 
     # Add this as a legit way to get there
     if child.id == grid.end_node.id
       @ways_there << new_path
+      next
     end
 
     # Do not queue if you have already got here cheaper
-    cost_up_to_now = new_path.map(&:node).map(&:cost).sum - new_path.first.node.cost
-    next if @visited[[child.i, child.j, direction,cons_steps_to_this_node]] && @visited[[child.i, child.j, direction, cons_steps_to_this_node]] < cost_up_to_now
+    next if @visited[[child.i, child.j, direction, cons_steps_to_this_node]] && @visited[[child.i, child.j, direction, cons_steps_to_this_node]] < cost_up_to_now
 
     # Queue new path
     queue.push(new_path,cost_up_to_now)
@@ -155,11 +156,10 @@ while !queue.empty?
     @visited[[child.i, child.j, direction, cons_steps_to_this_node]] = cost_up_to_now
   end
 
-
 end
 
 pp @ways_there.sort_by { |way| way.map(&:node).map(&:cost).sum }.first.map(&:direction)
 pp @ways_there.sort_by { |way| way.map(&:node).map(&:cost).sum }.first
-pp "Smallest: #{@ways_there.map { |way| way.map(&:node).map(&:cost).sum }.min}"
+pp "Smallest: #{@ways_there.map { |way| way.last.cost_to_date }.min}"
 pp "Of #{@ways_there.size} paths"
 
