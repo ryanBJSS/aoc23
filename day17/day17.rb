@@ -1,13 +1,12 @@
 require 'fc'
 require 'byebug'
-class PathItem
-  attr_accessor :node, :direction, :steps_in_one_dir_to_get_here, :cost_to_date
+class Path
+  attr_accessor :node, :direction, :steps_in_one_dir_to_get_here
 
-  def initialize(node, direction, steps_in_one_dir_to_get_here, cost_to_date)
+  def initialize(node, direction, steps_in_one_dir_to_get_here)
     self.node = node
     self.direction = direction
     self.steps_in_one_dir_to_get_here = steps_in_one_dir_to_get_here
-    self.cost_to_date = cost_to_date
   end
 
   def id
@@ -85,81 +84,55 @@ end
 pp "Preprocessing done"
 
 
-@visited = {
-  PathItem.new(grid.start_node, :left, 1, 0).id => 0,
-  PathItem.new(grid.start_node,  :up, 1, 0).id => 0
-}
-
+@visited = {}
 @ways_there = []
-path = [PathItem.new(grid.start_node, :left, 1, 0)]
-p2 = [PathItem.new(grid.start_node, :up, 1, 0)]
 queue = FastContainers::PriorityQueue.new(:min)
-queue.push(path, 0)
-queue.push(p2,0)
+queue.push([Path.new(grid.start_node, :right, 0), 0], 0)
+queue.push([Path.new(grid.start_node, :down, 0), 0], 0)
+
 while !queue.empty?
 
-  path = queue.pop
-  last_node = path.last.node
+  path, heat_loss = queue.pop
 
-  grid.mappings[last_node.id].each do |(child, direction)|
+  grid.mappings[path.node.id].each do |(child, direction)|
 
-    if path.last.direction == :up && direction == :down
+    if path.direction == :up && direction == :down
       next
     end
 
-    if path.last.direction == :down && direction == :up
+    if path.direction == :down && direction == :up
       next
     end
 
-    if path.last.direction == :left && direction == :right
+    if path.direction == :left && direction == :right
       next
     end
 
-    if path.last.direction == :right && direction == :left
+    if path.direction == :right && direction == :left
       next
     end
 
-    # Count last 3 steps with this node
-    last3_directions = path.last(3).map(&:direction)
-
-    # Work out consecutive steps to get here
-    cons_steps_to_this_node = 1
-    last3_directions.reverse.each do |dir|
-      if dir == direction
-        cons_steps_to_this_node += 1
-      else
-        break
-      end
+    if path.direction == direction
+      next if path.steps_in_one_dir_to_get_here == 3
+      cons_steps_to_this_node = path.steps_in_one_dir_to_get_here + 1
+    else
+      cons_steps_to_this_node = 1
     end
 
-    # Don't queue if too many steps
-    next if cons_steps_to_this_node > 3
+    new_path = Path.new(child, direction, cons_steps_to_this_node)
 
-    # Attempt extending the path with this node
-    new_path = Marshal.load(Marshal.dump(path))
-    cost_up_to_now = path.last.cost_to_date + child.cost
-    new_path << PathItem.new(child, direction, cons_steps_to_this_node, cost_up_to_now)
+    cost_up_to_now = heat_loss + child.cost
 
-    # Add this as a legit way to get there
     if child.id == grid.end_node.id
-      @ways_there << new_path
-      next
+      puts cost_up_to_now
+      return
     end
 
-    # Do not queue if you have already got here cheaper
-    next if @visited[[child.i, child.j, direction, cons_steps_to_this_node]] && @visited[[child.i, child.j, direction, cons_steps_to_this_node]] < cost_up_to_now
+    next if @visited[[child.i, child.j, direction, cons_steps_to_this_node]]
 
     # Queue new path
-    queue.push(new_path,cost_up_to_now)
-
+    queue.push([new_path,  cost_up_to_now], cost_up_to_now)
     # Save cost to get here
     @visited[[child.i, child.j, direction, cons_steps_to_this_node]] = cost_up_to_now
   end
-
 end
-
-pp @ways_there.sort_by { |way| way.map(&:node).map(&:cost).sum }.first.map(&:direction)
-pp @ways_there.sort_by { |way| way.map(&:node).map(&:cost).sum }.first
-pp "Smallest: #{@ways_there.map { |way| way.last.cost_to_date }.min}"
-pp "Of #{@ways_there.size} paths"
-
