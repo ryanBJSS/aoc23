@@ -1,13 +1,12 @@
 require 'fc'
 require 'byebug'
-class Path
-  attr_accessor :node, :direction, :steps_in_one_dir_to_get_here, :loss
+class PathItem
+  attr_accessor :node, :direction, :steps_in_one_dir_to_get_here
 
-  def initialize(node, direction, steps_in_one_dir_to_get_here, loss = 0)
+  def initialize(node, direction, steps_in_one_dir_to_get_here)
     self.node = node
     self.direction = direction
     self.steps_in_one_dir_to_get_here = steps_in_one_dir_to_get_here
-    self.loss = loss
   end
 
   def id
@@ -86,15 +85,16 @@ pp "Preprocessing done"
 
 
 @visited = {}
-@ways_there = []
-queue = FastContainers::PriorityQueue.new(:min)
-queue.push([Path.new(grid.start_node, :right, 0, ), 0], 0)
-queue.push([Path.new(grid.start_node, :down, 0, 0), 0], 0)
 
+@ways_there = []
+path = PathItem.new(grid.start_node, :right, 0)
+p2 = PathItem.new(grid.start_node, :down, 0)
+queue = FastContainers::PriorityQueue.new(:min)
+queue.push([path, 0], 0)
+queue.push([p2, 0], 0)
 while !queue.empty?
 
   path, heat_loss = queue.pop
-  heat_loss = path.loss
 
   grid.mappings[path.node.id].each do |(child, direction)|
 
@@ -121,11 +121,10 @@ while !queue.empty?
       cons_steps_to_this_node = 1
     end
 
+    new_path = PathItem.new(child, direction, cons_steps_to_this_node)
+
     cost_up_to_now = heat_loss + child.cost
-
-    new_path = Path.new(child, direction, cons_steps_to_this_node, cost_up_to_now)
-
-
+    # Add this as a legit way to get there
     if child.id == grid.end_node.id
       puts cost_up_to_now
       return
@@ -134,7 +133,7 @@ while !queue.empty?
     next if @visited[[child.i, child.j, direction, cons_steps_to_this_node]]
 
     # Queue new path
-    queue.push([new_path,  nil], cost_up_to_now)
+    queue.push([new_path,  cost_up_to_now], cost_up_to_now)
     # Save cost to get here
     @visited[[child.i, child.j, direction, cons_steps_to_this_node]] = cost_up_to_now
   end
