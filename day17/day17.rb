@@ -59,81 +59,79 @@ class NodeMap
   end
 end
 
-grid = NodeMap.new
+@grid = NodeMap.new
 
 File.readlines("input.txt").map(&:chomp).each_with_index do |row, i|
   row.chars.each_with_index do |col, j|
-    grid.add Node.new(i, j, col)
+    @grid.add Node.new(i, j, col)
   end
 end
 
-grid.nodes.each do |i,jhash|
+@grid.nodes.each do |i,jhash|
   jhash.each do |j, node|
     nodes_to_add = []
-    nodes_to_add << [grid.nodes.dig(i,j - 1), :left] if grid.nodes.dig(i,j - 1)
-    nodes_to_add << [grid.nodes.dig(i,j + 1), :right] if grid.nodes.dig(i,j + 1)
-    if grid.nodes.has_key?(i - 1) && grid.nodes.has_key?(j)
-      nodes_to_add << [grid.nodes[i - 1][j], :up]
+    nodes_to_add << [@grid.nodes.dig(i,j - 1), :left] if @grid.nodes.dig(i,j - 1)
+    nodes_to_add << [@grid.nodes.dig(i,j + 1), :right] if @grid.nodes.dig(i,j + 1)
+    if @grid.nodes.has_key?(i - 1) && @grid.nodes.has_key?(j)
+      nodes_to_add << [@grid.nodes[i - 1][j], :up]
     end
-    if grid.nodes.has_key?(i + 1) && grid.nodes.has_key?(j)
-      nodes_to_add << [grid.nodes[i + 1][j], :down]
+    if @grid.nodes.has_key?(i + 1) && @grid.nodes.has_key?(j)
+      nodes_to_add << [@grid.nodes[i + 1][j], :down]
     end
-    grid.mappings[node.id] = nodes_to_add
+    @grid.mappings[node.id] = nodes_to_add
   end
 end
 
 pp "Preprocessing done"
 
-@visited = {}
-@ways_there = []
-queue = FastContainers::PriorityQueue.new(:min)
-queue.push(Path.new(grid.start_node, :right, 0, ), 0)
-queue.push(Path.new(grid.start_node, :down, 0, 0), 0)
+def day17(min_steps, max_steps)
+  @visited = {}
+  @ways_there = []
+  queue = FastContainers::PriorityQueue.new(:min)
+  queue.push(Path.new(@grid.start_node, :right, 0, ), 0)
+  queue.push(Path.new(@grid.start_node, :down, 0, 0), 0)
 
-while !queue.empty?
+  while !queue.empty?
 
-  path = queue.pop
-  heat_loss = path.loss
+    path = queue.pop
+    heat_loss = path.loss
 
-  grid.mappings[path.node.id].each do |(child, direction)|
+    @grid.mappings[path.node.id].each do |(child, direction)|
 
-    if path.direction == :up && direction == :down
-      next
+      if [:up, :down].to_set == [path.direction, direction].to_set || [:left, :right].to_set == [path.direction, direction].to_set
+        next
+      end
+
+      if path.direction == direction
+        next if path.steps_in_one_dir_to_get_here == max_steps
+        cons_steps_to_this_node = path.steps_in_one_dir_to_get_here + 1
+      else
+        if path.steps_in_one_dir_to_get_here < min_steps
+          next
+        end
+        cons_steps_to_this_node = 1
+      end
+
+      cost_up_to_now = heat_loss + child.cost
+
+      new_path = Path.new(child, direction, cons_steps_to_this_node, cost_up_to_now)
+
+      if child.id == @grid.end_node.id
+        puts cost_up_to_now
+        return
+      end
+
+      next if @visited[[child.i, child.j, direction, cons_steps_to_this_node]]
+
+      # Queue new path
+      queue.push(new_path, cost_up_to_now)
+      # Save cost to get here
+      @visited[[child.i, child.j, direction, cons_steps_to_this_node]] = cost_up_to_now
     end
-
-    if path.direction == :down && direction == :up
-      next
-    end
-
-    if path.direction == :left && direction == :right
-      next
-    end
-
-    if path.direction == :right && direction == :left
-      next
-    end
-
-    if path.direction == direction
-      next if path.steps_in_one_dir_to_get_here == 3
-      cons_steps_to_this_node = path.steps_in_one_dir_to_get_here + 1
-    else
-      cons_steps_to_this_node = 1
-    end
-
-    cost_up_to_now = heat_loss + child.cost
-
-    new_path = Path.new(child, direction, cons_steps_to_this_node, cost_up_to_now)
-
-    if child.id == grid.end_node.id
-      puts cost_up_to_now
-      return
-    end
-
-    next if @visited[[child.i, child.j, direction, cons_steps_to_this_node]]
-
-    # Queue new path
-    queue.push(new_path, cost_up_to_now)
-    # Save cost to get here
-    @visited[[child.i, child.j, direction, cons_steps_to_this_node]] = cost_up_to_now
   end
 end
+
+# Part 1
+day17(0, 3)
+# Part 2
+day17(4, 10)
