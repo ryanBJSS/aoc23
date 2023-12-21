@@ -65,7 +65,6 @@ File.readlines("input.txt").map(&:chomp).each_with_index do |row, i|
     grid.add Node.new(i, j, col)
   end
 end
-pp "A"
 grid.nodes.each do |i,jhash|
   jhash.each do |j, node|
     nodes_to_add = []
@@ -79,10 +78,11 @@ grid.nodes.each do |i,jhash|
     end
     grid.mappings[node.id] = nodes_to_add
   end
-
-
 end
-pp "B"
+
+pp "Preprocessing done"
+
+
 @visited = {
   PathItem.new(grid.start_node, :left, 0).id => 0,
   PathItem.new(grid.start_node,  :up, 0).id => 0
@@ -102,7 +102,6 @@ while !queue.empty?
     steps_in_one_dir_to_get_here = path.last(3).map(&:direction).select { |d| d == direction }.size
     if child.id == grid.end_node.id
       @ways_there << (path + [PathItem.new(child,direction, steps_in_one_dir_to_get_here)])
-      puts "moo"
     end
     cost_up_to_now = path.map(&:node).map(&:cost).sum + child.cost
     next if steps_in_one_dir_to_get_here == 3
@@ -117,4 +116,7 @@ while !queue.empty?
   end
 end
 
-pp @ways_there.map { |way| way.map(&:node).map(&:cost).sum }.min
+pp @ways_there.sort_by { |way| way.map(&:node).map(&:cost).sum }.first.map(&:direction)
+pp "Smallest: #{@ways_there.map { |way| way.map(&:node).map(&:cost).sum }.min}"
+pp "Of #{@ways_there.size} paths"
+
