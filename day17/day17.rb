@@ -67,6 +67,7 @@ File.readlines("input.txt").map(&:chomp).each_with_index do |row, i|
     grid.add Node.new(i, j, col)
   end
 end
+
 grid.nodes.each do |i,jhash|
   jhash.each do |j, node|
     nodes_to_add = []
@@ -84,16 +85,15 @@ end
 
 pp "Preprocessing done"
 
-
 @visited = {}
 @ways_there = []
 queue = FastContainers::PriorityQueue.new(:min)
-queue.push([Path.new(grid.start_node, :right, 0, ), 0], 0)
-queue.push([Path.new(grid.start_node, :down, 0, 0), 0], 0)
+queue.push(Path.new(grid.start_node, :right, 0, ), 0)
+queue.push(Path.new(grid.start_node, :down, 0, 0), 0)
 
 while !queue.empty?
 
-  path, heat_loss = queue.pop
+  path = queue.pop
   heat_loss = path.loss
 
   grid.mappings[path.node.id].each do |(child, direction)|
@@ -125,7 +125,6 @@ while !queue.empty?
 
     new_path = Path.new(child, direction, cons_steps_to_this_node, cost_up_to_now)
 
-
     if child.id == grid.end_node.id
       puts cost_up_to_now
       return
@@ -134,7 +133,7 @@ while !queue.empty?
     next if @visited[[child.i, child.j, direction, cons_steps_to_this_node]]
 
     # Queue new path
-    queue.push([new_path,  nil], cost_up_to_now)
+    queue.push(new_path, cost_up_to_now)
     # Save cost to get here
     @visited[[child.i, child.j, direction, cons_steps_to_this_node]] = cost_up_to_now
   end
