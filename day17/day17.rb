@@ -1,5 +1,4 @@
 require 'fc'
-require 'byebug'
 class Path
   attr_accessor :node, :direction, :steps_in_one_dir_to_get_here, :loss
 
