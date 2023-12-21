@@ -1,12 +1,13 @@
 require 'fc'
 require 'byebug'
 class Path
-  attr_accessor :node, :direction, :steps_in_one_dir_to_get_here
+  attr_accessor :node, :direction, :steps_in_one_dir_to_get_here, :heat_loss
 
-  def initialize(node, direction, steps_in_one_dir_to_get_here)
+  def initialize(node, direction, steps_in_one_dir_to_get_here, heat_loss)
     self.node = node
     self.direction = direction
     self.steps_in_one_dir_to_get_here = steps_in_one_dir_to_get_here
+    self.heat_loss = heat_loss
   end
 
   def id
@@ -66,6 +67,7 @@ File.readlines("input.txt").map(&:chomp).each_with_index do |row, i|
     grid.add Node.new(i, j, col)
   end
 end
+
 grid.nodes.each do |i,jhash|
   jhash.each do |j, node|
     nodes_to_add = []
@@ -87,8 +89,8 @@ pp "Preprocessing done"
 @visited = {}
 @ways_there = []
 queue = FastContainers::PriorityQueue.new(:min)
-queue.push([Path.new(grid.start_node, :right, 0), 0], 0)
-queue.push([Path.new(grid.start_node, :down, 0), 0], 0)
+queue.push(Path.new(grid.start_node, :right, 0, 0))
+queue.push(Path.new(grid.start_node, :down, 0, 0))
 
 while !queue.empty?
 
