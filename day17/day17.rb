@@ -102,17 +102,37 @@ while !queue.empty?
 
   grid.mappings[last_node.id].each do |(child, direction)|
 
+    if path.last.direction == :up && direction == :down
+      next
+    end
+
+    if path.last.direction == :down && direction == :up
+      next
+    end
+
+    if path.last.direction == :left && direction == :right
+      next
+    end
+
+    if path.last.direction == :right && direction == :left
+      next
+    end
+
     # Count last 3 steps with this node
-    last4_directions = path.last(4).map(&:direction) + [direction]
-    steps_in_one_dir_to_get_here = last4_directions.select { |d| d == direction }.size
+    last3_directions = path.last(3).map(&:direction)
+    steps_in_one_dir_to_get_here = last3_directions.select { |d| d == direction }.size
 
     # Stop without queuing if that would be too many steps
     # debugger if last3_directions.include?(:right) && path.size > 2
-    next if steps_in_one_dir_to_get_here > 3
+    next if steps_in_one_dir_to_get_here == 3
+
+    last3_directions_with_this_node = path.last(2).map(&:direction) + [:direction]
+    cons_steps_to_this_node = last3_directions_with_this_node.select { |d| d == direction }.size
+
 
     # Attempt extending the path with this node
     new_path = Marshal.load(Marshal.dump(path))
-    new_path << PathItem.new(child, direction, steps_in_one_dir_to_get_here)
+    new_path << PathItem.new(child, direction, cons_steps_to_this_node)
 
     next if child.id == path[-2]&.id # No back
 
@@ -123,19 +143,20 @@ while !queue.empty?
 
     # Do not queue if you have already got here cheaper
     cost_up_to_now = new_path.map(&:node).map(&:cost).sum - new_path.first.node.cost
-    next if @visited[[child.i, child.j, direction,steps_in_one_dir_to_get_here]] && @visited[[child.i, child.j, direction, steps_in_one_dir_to_get_here]] < cost_up_to_now
+    next if @visited[[child.i, child.j, direction,cons_steps_to_this_node]] && @visited[[child.i, child.j, direction, cons_steps_to_this_node]] < cost_up_to_now
 
     # Queue new path
     queue.push(new_path,cost_up_to_now)
 
     # Save cost to get here
-    @visited[[child.i, child.j, direction, steps_in_one_dir_to_get_here]] = cost_up_to_now
+    @visited[[child.i, child.j, direction, cons_steps_to_this_node]] = cost_up_to_now
   end
 
 
 end
 
 pp @ways_there.sort_by { |way| way.map(&:node).map(&:cost).sum }.first.map(&:direction)
+pp @ways_there.sort_by { |way| way.map(&:node).map(&:cost).sum }.first
 pp "Smallest: #{@ways_there.map { |way| way.map(&:node).map(&:cost).sum }.min}"
 pp "Of #{@ways_there.size} paths"
 
