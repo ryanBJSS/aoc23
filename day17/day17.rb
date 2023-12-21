@@ -85,13 +85,13 @@ pp "Preprocessing done"
 
 
 @visited = {
-  PathItem.new(grid.start_node, :left, 0).id => 0,
-  PathItem.new(grid.start_node,  :up, 0).id => 0
+  PathItem.new(grid.start_node, :left, 1).id => 0,
+  PathItem.new(grid.start_node,  :up, 1).id => 0
 }
 
 @ways_there = []
-path = [PathItem.new(grid.start_node, :left, 0)]
-p2 = [PathItem.new(grid.start_node, :up, 0)]
+path = [PathItem.new(grid.start_node, :left, 1)]
+p2 = [PathItem.new(grid.start_node, :up, 1)]
 queue = FastContainers::PriorityQueue.new(:min)
 queue.push(path, 0)
 queue.push(p2,0)
@@ -120,21 +120,24 @@ while !queue.empty?
 
     # Count last 3 steps with this node
     last3_directions = path.last(3).map(&:direction)
-    steps_in_one_dir_to_get_here = last3_directions.select { |d| d == direction }.size
 
-    # Stop without queuing if that would be too many steps
-    # debugger if last3_directions.include?(:right) && path.size > 2
-    next if steps_in_one_dir_to_get_here == 3
+    # Work out consecutive steps to get here
+    cons_steps_to_this_node = 1
+    last3_directions.reverse.each do |dir|
+      if dir == direction
+        cons_steps_to_this_node += 1
+      else
+        break
+      end
+    end
 
-    last3_directions_with_this_node = path.last(2).map(&:direction) + [:direction]
-    cons_steps_to_this_node = last3_directions_with_this_node.select { |d| d == direction }.size
+    # Don't queue if too many steps
+    next if cons_steps_to_this_node > 3
 
 
     # Attempt extending the path with this node
     new_path = Marshal.load(Marshal.dump(path))
     new_path << PathItem.new(child, direction, cons_steps_to_this_node)
-
-    next if child.id == path[-2]&.id # No back
 
     # Add this as a legit way to get there
     if child.id == grid.end_node.id
