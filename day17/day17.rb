@@ -1,4 +1,5 @@
 require 'fc'
+require 'byebug'
 class PathItem
   attr_accessor :node, :direction, :steps_in_one_dir_to_get_here
 
@@ -33,7 +34,7 @@ end
 class NodeMap
   def initialize
     @nodes = Hash.new { |hash, key| hash[key] = {} }
-    @mappings = {  }
+    @mappings = {}
   end
 
   def mappings
@@ -45,7 +46,7 @@ class NodeMap
   end
 
   def end_node
-    max = @nodes.keys.max - 1
+    max = @nodes.keys.max
     @nodes[max][max]
   end
 
@@ -95,25 +96,43 @@ queue = FastContainers::PriorityQueue.new(:min)
 queue.push(path, 0)
 queue.push(p2,0)
 while !queue.empty?
+
   path = queue.pop
   last_node = path.last.node
+
   grid.mappings[last_node.id].each do |(child, direction)|
+
+    # Count last 3 steps with this node
+    last4_directions = path.last(4).map(&:direction) + [direction]
+    steps_in_one_dir_to_get_here = last4_directions.select { |d| d == direction }.size
+
+    # Stop without queuing if that would be too many steps
+    # debugger if last3_directions.include?(:right) && path.size > 2
+    next if steps_in_one_dir_to_get_here > 3
+
+    # Attempt extending the path with this node
+    new_path = Marshal.load(Marshal.dump(path))
+    new_path << PathItem.new(child, direction, steps_in_one_dir_to_get_here)
+
     next if child.id == path[-2]&.id # No back
-    steps_in_one_dir_to_get_here = path.last(3).map(&:direction).select { |d| d == direction }.size
+
+    # Add this as a legit way to get there
     if child.id == grid.end_node.id
-      @ways_there << (path + [PathItem.new(child,direction, steps_in_one_dir_to_get_here)])
+      @ways_there << new_path
     end
-    cost_up_to_now = path.map(&:node).map(&:cost).sum + child.cost
-    next if steps_in_one_dir_to_get_here == 3
+
+    # Do not queue if you have already got here cheaper
+    cost_up_to_now = new_path.map(&:node).map(&:cost).sum - new_path.first.node.cost
     next if @visited[[child.i, child.j, direction,steps_in_one_dir_to_get_here]] && @visited[[child.i, child.j, direction, steps_in_one_dir_to_get_here]] < cost_up_to_now
-      must_change_direction = path.last(3).all? { |p| p.direction == direction }
-      next if must_change_direction
-      new_path = Marshal.load(Marshal.dump(path))
-      new_path << PathItem.new(child, direction, steps_in_one_dir_to_get_here)
-      queue.push(new_path,cost_up_to_now)
-      @visited[[child.i, child.j, direction, steps_in_one_dir_to_get_here]] = cost_up_to_now
-    # end
+
+    # Queue new path
+    queue.push(new_path,cost_up_to_now)
+
+    # Save cost to get here
+    @visited[[child.i, child.j, direction, steps_in_one_dir_to_get_here]] = cost_up_to_now
   end
+
+
 end
 
 pp @ways_there.sort_by { |way| way.map(&:node).map(&:cost).sum }.first.map(&:direction)
