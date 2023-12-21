@@ -118,4 +118,3 @@ while !queue.empty?
 end
 
 pp @ways_there.map { |way| way.map(&:node).map(&:cost).sum }.min
-pp @ways_there.map { |path| path.direction }
